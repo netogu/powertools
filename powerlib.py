@@ -354,8 +354,8 @@ class Buck_DCDC(object):
         l.calc_volt_sec(vin, self.Vout, self.DC, self.Fsw)
         l.Il_pp = (vin - self.Vout) * self.DC  / (l.L * self.Fsw)
         l.Il_avg = self.Iout_tdp / self.N_Phases
-        l.Il_peak = l.Il_avg + l.Il_pp / 2
-        l.Il_valley = l.Il_avg - l.Il_pp / 2
+        l.Il_peak = l.Il_avg + l.Il_pp / 2.0
+        l.Il_valley = l.Il_avg - l.Il_pp / 2.0
         l.Il_rms = num.sqrt((l.Il_peak ** 2 + l.Il_valley ** 2 + l.Il_peak * l.Il_valley) / 3.0)
 
         qtop.Ids_peak = l.Il_peak
@@ -577,7 +577,8 @@ class Buck_DCDC(object):
         print('---------------------------------------------------------')
         print('LC cutoff fo = {:.2f}kHz to get {:.2f}mV of output ripple'.format(f0 / 1e3, self.Vout_ripple_dc / 1e-3))
         print('Capacitance to meet ss ripple = {:.2f}uF'.format(cout_ss/1e-6))
-        print('Capacitance to meet AC ripple = {:.2f}uF with a load step of {:.2f}A'.format(cout_ac / 1e-6, self.load_step))
+        print('Capacitance to meet AC ripple = {:.2f}uF with a load step of {:.2f}A'
+              .format(cout_ac / 1e-6, self.load_step))
         print('----------------------------------------------------------\n')
 
     def calculate_eff_output_current_ripple_factor(self):
