@@ -372,6 +372,7 @@ class Buck_DCDC(object):
         print('Duty Cycle = {:.2f}%'.format(self.DC * 100))
         print('No. of phases = {}'.format(self.N_Phases))
         print('Output Power = {:4.2f}W'.format(self.P_tdp))
+        print('Fsw = {:.2f}kHz'.format(self.Fsw / 1e3))
         print('Chosen Inductance = {:.2f}uH'.format(l.L / 1e-6))
         print('---------------------------')
         print('Inductor rms current:  iLrms = {:4.3f} A rms'.format(l.Il_rms))
@@ -416,6 +417,7 @@ class Buck_DCDC(object):
         print('Duty Cycle = {:.2f}%'.format(self.DC * 100))
         print('No. of phases = {}'.format(self.N_Phases))
         print('Output Power = {:4.2f}W'.format(self.P_tdp))
+        print('Fsw = {:.2f}kHz'.format(self.Fsw/1e3))
         print('Chosen Inductance = {:.2f}uH'.format(l.L/1e-6))
         print('---------------------------')
         print('Inductor rms current:  iLrms = {:4.3f} A rms'.format(l.Il_rms))
@@ -547,9 +549,9 @@ class Buck_DCDC(object):
 
         # Top MOSFET Qrr losses
         # Normalize Qrr for peak current
-        #qbot.Qrr_n = l.Il_valley / qbot.Qrr_Ipeak * diode.Qrr
+        # qbot.Qrr_n = l.Il_valley / qbot.Qrr_Ipeak * diode.Qrr
         # If ta = tb
-       # qtop.Pqrr_loss = 4 / 6.0 * qbot.Qrr_n * qtop.Vds * self.Fsw
+        # qtop.Pqrr_loss = 4 / 6.0 * qbot.Qrr_n * qtop.Vds * self.Fsw
 
         # Sum Total MOSFET Losses
         qtop.calc_total_losses()
