@@ -268,6 +268,7 @@ class Load(object):
 
 
 class Buck_DCDC(object):
+
     def __init__(self, vin=Source(), vout=Load(), il_rf=0, n_phases=0, fsw=0):
 
         # General Buck DC/DC Characteristics (No components)
@@ -625,22 +626,6 @@ class Buck_DCDC(object):
         self.Icin_rms = self.Iout_edp * num.sqrt(self.DC * (1-self.DC) +
                         1.0/12.0 * (self.Vout / (l.L * self.Fsw *self.Iout_edp))**2 * (1 - self.DC)**2 * self.DC)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
             # def plot_loss_piechart(losses,colors,labels,title_str):
 #     """Displays all losses in a PieChart"""
 #
@@ -657,3 +642,16 @@ class Buck_DCDC(object):
 #     plot=pie(losses_norm, colors=colors, labels=labels,shadow='True',autopct=make_autopct(losses))
 #     plot=axis('equal')
 #     plot=title(title_str)
+
+
+def calc_rbot_fb_network(rtop=0, vref=0, vout=0):
+    return rtop / (vout/vref - 1.0)
+
+
+def calc_rtop_fb_network(rbot=0, vref=0, vout=0):
+    return rbot * (vout/vref - 1.0)
+
+
+def calc_vout_fb_network(rtop=0.0, rbot=0.0, rinj=0.0, vref=0.0):
+    vout = (rinj + rtop + rbot) / rbot * vref
+    print("Vout = {:.2f}V with Vfb = {:.2f}mV".format(vout, vref / 1e-3))
