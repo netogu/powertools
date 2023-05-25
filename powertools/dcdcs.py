@@ -2,39 +2,28 @@
 import numpy as np
 from dataclasses import dataclass, field
 # import pandas as pd
-from .components import Resistor, Capacitor, Inductor, Mosfet, GateDriver
+from components import Resistor, Capacitor, Inductor, Mosfet, GateDriver
 
 
 # ***********************************************************************************************
 #                    POWER CONVERTERS
 # ***********************************************************************************************
-
 @dataclass
-class PowerParams:
-    #Operating conditions
-    vin:float = field(default=0)
-    vout:float = field(default=0)
-    pout:float = field(default=0)
-    eff:float = field(default=1.0)
-    fsw:float = field(default=0)
-    #Requirements
-    fc:float = field(default=0,repr=False)
-    vin_ripple:float = field(default=0,repr=False)
-    vout_ss_ripple:float = field(default=0,repr=False)
-    vout_ac_ripple:float = field(default=0,repr=False)
-    Il_rfactor:float = field(default=0,repr=False)
+class Requirements:
 
-    @property
-    def pin(self):
-        return self.pout/self.eff
-    @property
-    def iout(self):
-        return self.pout/self.vout
-    @property
-    def iin(self):
-        return self.pin/self.vin
+    vin_min:float = 0.0
+    vin_max:float = 0.0
+    eff:float = 1.0
+    fsw:float = 0
+    fc:float = 0
+    vin_ripple:float = 0
+    vout_ss_ripple:float = 0
+    vout_ac_ripple:float = 0
+    il_rfactor:float = 0
 
 
+
+# TODO: create factory class that generates DCDC converter based on requirements
 
 # ***********************************************************************************************
 #                    SWITCHMODE DCDC  POWER TOPOLOGIES
@@ -43,7 +32,11 @@ class PowerParams:
 class SyncBuck:
     """Synchronous Buck DCDC Converter Class"""
 
-    def __init__(self,  op:PowerParams, 
+    
+    def __init__(self,  vin:float,
+                        vout:float,
+                        pout:float,
+                        requirements:Requirements,
                         inductor:Inductor=Inductor(),
                         outcap:Capacitor=Capacitor(),
                         incap:Capacitor=Capacitor(),
@@ -56,41 +49,63 @@ class SyncBuck:
                         Nphases:int = 1):
 
 
-        self.op = op
         self.Lout = inductor
         self.Cin = incap
         self.Cout = outcap
-        self.SWhs = active_sw
-        self.SWls = passive_sw
-        self.Gdls = hs_gatedrive
-        self.Gdhs = ls_gatedrive
-        self.n_swhs = n_active_sw
-        self.n_swls = n_passive_sw
-        self.n_phases = Nphases
+        self.Qhs = active_sw
+        self.Qls= passive_sw 
+        self.Gdhs = hs_gatedrive
+        self.Gdls = ls_gatedrive
+        self.nQhs = n_active_sw
+        self.nQls = n_passive_sw
+        self.nPhases = Nphases
 
         #Connect Gate drivers
-        self.SWhs.connect_gatedrive(self.Gdhs)
-        self.SWls.connect_gatedrive(self.Gdls)
+        #TODO: change gatedrive class to connect to a FET instead
+        self.Qhs.connect_gatedrive(self.Gdhs)
+        self.Qls.connect_gatedrive(self.Gdls)
+
+        self.req = requirements
+        self.eff = self.req.eff if self.req.eff > 0.0 else 1.0
+        self.vin = vin if vin > 0.0 else 0.0
+        self.vout = vout if vout > 0.0 else 0.0
+        self.pout = pout if pout > 0.0 else 0.0
+
+
+
+
 
         self._calc_losses = False
+
+    @property
+    def pin(self):
+        return self.pout/self.eff
+
+    @property
+    def iout(self):
+        return self.pout/self.vout
+
+    @property
+    def iin(self):
+        return self.pin/self.vin
 
 
     @property
     def dc(self):
-        return self.op.vout/(self.op.vin + 1e-22) / self.op.eff
+        return self.vout/(self.vin + 1e-22) / self.eff
 
     @property
     def Icin_rms_ratio(self):
         D = self.dc
-        m = np.floor(self.dc*self.n_phases)
-        n = self.n_phases
+        m = np.floor(self.dc*self.nPhases)
+        n = self.nPhases
         return np.sqrt((D-m/n)*((1+m)/n - D))
 
     @property
     def Icout_rms_ratio(self):
         D = self.dc
-        m = np.floor(self.dc*self.n_phases)
-        n = self.n_phases
+        m = np.floor(self.dc*self.nPhases)
+        n = self.nPhases
         return n/(D*(1-D))*((D-m/n)*((1+m)/n - D))
 
 
@@ -98,17 +113,17 @@ class SyncBuck:
 
         
         # ------- Calculate Phase Current ------------ 
-        self.op.iout_phase = self.op.iout / self.n_phases
+        self.iout_phase = self.iout / self.nPhases
 
         # ------- Calculate Inductor Current ------------ 
 
-        self.Lout.Iavg = self.op.iout_phase
-        self.Lout.von = self.op.vin - self.op.vout
-        self.Lout.vsec = self.Lout.von * self.dc / self.op.fsw
+        self.Lout.Iavg = self.iout_phase
+        self.Lout.von = self.vin - self.vout
+        self.Lout.vsec = self.Lout.von * self.dc / self.req.fsw
         self.Lout.vusec = self.Lout.vsec / 1e-6
 
         if self.Lout.L == 0.0:
-            self.Lout.Ipkpk = self.Lout.Iavg * self.op.Il_rfactor
+            self.Lout.Ipkpk = self.Lout.Iavg * self.req.il_rfactor
             self.Lout.L = self.Lout.vsec / self.Lout.Ipkpk
         else:
             self.Lout.Ipkpk = self.Lout.vsec / self.Lout.L
@@ -118,60 +133,59 @@ class SyncBuck:
         self.Lout.Irms = np.sqrt((self.Lout.Ipk**2 + self.Lout.Ivalley**2 + self.Lout.Ipk*self.Lout.Ivalley)/3)
 
         # ------- Calculate Output Capacitance ------------ 
-        self.Cout.Q =  self.Lout.Ipkpk / (8 * self.op.fsw)
-        self.Cout.Css = self.Cout.Q / self.op.vout_ss_ripple
-        load_step = self.op.iout * 0.5
-        self.Cout.Cac = load_step / (2*np.pi*self.op.fc*self.op.vout_ac_ripple)
-        self.Cout.Irms = self.Icout_rms_ratio * self.op.iout
+        self.Cout.Q =  self.Lout.Ipkpk / (8 * self.req.fsw)
+        self.Cout.Css = self.Cout.Q / self.req.vout_ss_ripple
+        load_step = self.iout * 0.5
+        self.Cout.Cac = load_step / (2*np.pi*self.req.fc*self.req.vout_ac_ripple)
+        self.Cout.Irms = self.Icout_rms_ratio * self.iout
         
-        self.Cout.C = max(self.Cout.Cac,self.Cout.Css) * self.n_phases
+        self.Cout.C = max(self.Cout.Cac,self.Cout.Css) * self.nPhases
 
         # ------- Calculate FET Currents ------------ 
 
         # Active FET
-        self.SWhs.vds = self.op.vin
-        self.SWhs.Idpk = self.Lout.Ipk/self.n_swhs
-        self.SWhs.Idrms = self.Lout.Iavg*np.sqrt(self.dc)/self.n_swhs
-        self.SWhs.Idpk_total = self.SWhs.Idpk * self.n_swhs
-        self.SWhs.Idrms_total = self.SWhs.Idrms * self.n_swhs
+        self.Qhs.vds = self.vin
+        self.Qhs.Idpk = self.Lout.Ipk/self.nQhs
+        self.Qhs.Idrms = self.Lout.Iavg*np.sqrt(self.dc)/self.nQhs
+        self.Qhs.Idpk_total = self.Qhs.Idpk * self.nQhs
+        self.Qhs.Idrms_total = self.Qhs.Idrms * self.nQhs
         
         # Sync|Passive FET
-        self.SWls.vds = self.op.vin
-        self.SWls.Idpk = self.Lout.Ipk/self.n_swls
-        self.SWls.Idrms = self.Lout.Iavg*np.sqrt(1-self.dc)/self.n_swls
-        self.SWls.Idpk_total = self.SWls.Idpk * self.n_swls
-        self.SWls.Idrms_total = self.SWls.Idrms * self.n_swls
+        self.Qls.vds = self.vin
+        self.Qls.Idpk = self.Lout.Ipk/self.nQls
+        self.Qls.Idrms = self.Lout.Iavg*np.sqrt(1-self.dc)/self.nQls
+        self.Qls.Idpk_total = self.Qls.Idpk * self.nQls
+        self.Qls.Idrms_total = self.Qls.Idrms * self.nQls
 
         # ------- Calculate Input Capacitance ------------ 
 
-        self.Cin.Irms = self.Icin_rms_ratio * self.op.iout
-        self.Cin.Q = self.op.iin * (1-self.dc)/self.op.fsw
-        self.Cin.C = self.Cin.Q / self.op.vin_ripple
+        self.Cin.Irms = self.Icin_rms_ratio * self.iout
+        self.Cin.Q = self.iin * (1-self.dc)/self.req.fsw
+        self.Cin.C = self.Cin.Q / self.req.vin_ripple
 
         if calc_losses == True:
             self._calc_losses = True
 
             # --------- Loss Calculation ------------ 
             # Gate Driver Loss
-            self.Gdhs.Ploss = self.SWhs.qtot * self.n_swhs * self.Gdhs.vdrv * self.op.fsw
-            self.Gdls.Ploss = self.SWls.qtot * self.n_swls * self.Gdls.vdrv * self.op.fsw
+            self.Gdhs.Ploss = self.Qhs.qtot * self.nQhs * self.Gdhs.vdrv * self.req.fsw
+            self.Gdls.Ploss = self.Qls.qtot * self.nQls * self.Gdls.vdrv * self.req.fsw
 
             # Active Switch Loss (per Device)
-            self.SWhs.get_switch_times()
-            self.SWhs.Ploss['ohm'] = self.SWhs.rdson * self.SWhs.Idrms**2
-            self.SWhs.Ploss['sw'] = (self.Lout.Iavg/self.n_swhs)*self.SWhs.vds*(self.SWhs.tr + self.SWhs.tf)*self.op.fsw
-            self.SWhs.Ploss['dt'] = self.SWhs.vfwd * self.SWhs.Idrms * self.Gdhs.deadtime * 2 * self.op.fsw
-            self.SWhs.Ploss['coss'] = 1.0 * self.SWhs.coss * self.SWhs.vds * self.op.fsw
+            self.Qhs.get_switch_times()
+            self.Qhs.Ploss['ohm'] = self.Qhs.rdson * self.Qhs.Idrms**2
+            self.Qhs.Ploss['sw'] = (self.Lout.Iavg/self.nQhs)*self.Qhs.vds*(self.Qhs.tr + self.Qhs.tf)*self.op.fsw
+            self.Qhs.Ploss['dt'] = self.Qhs.vfwd * self.Qhs.Idrms * self.Gdhs.deadtime * 2 * self.req.fsw
+            self.Qhs.Ploss['coss'] = 1.0 * self.Qhs.coss * self.Qhs.vds * self.req.fsw
 
             # Sync. Rectifier Loss (per Device)
-            self.SWls.Ploss['ohm'] = self.SWls.rdson * self.SWls.Idrms**2
-            self.SWls.Ploss['dt'] = self.SWls.vfwd * self.SWls.Idrms * self.Gdls.deadtime * 2 * self.op.fsw
+            self.Qls.Ploss['ohm'] = self.Qls.rdson * self.Qls.Idrms**2
+            self.Qls.Ploss['dt'] = self.Qls.vfwd * self.Qls.Idrms * self.Gdls.deadtime * 2 * self.op.fsw
 
             # Inductor Loss
             self.Lout.Ploss['ohm'] = self.Lout.dcr * self.Lout.Irms**2
 
     def __repr__(self):
-        if 
         string = "Sync Buck:"
 
 

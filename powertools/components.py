@@ -146,7 +146,7 @@ class Mosfet:
     Tamb:float = field(default=25.0,repr=False)
     Tj:float = field(default=25.0,repr=True)
     Ploss:dict = field(default_factory=lambda: {'ohm':0.0,'sw':0.0,'coss':0.0,'dt':0.0,'qrr':0.0})
-    def qsw(self):
+
     @property
     def Ploss_total(self):
         return sum(self.Ploss.values())
