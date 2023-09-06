@@ -6,26 +6,23 @@ import numpy as np
 # ***********************************************************************************************
 #                    PASSIVE DEVICES
 # ***********************************************************************************************
-
-@dataclass
 class Passive:
     #Operating Point
-    volt:float = field(default=0)
-    Irms:float = field(default=0)
-    Ploss:float = field(default=0)
+    volt:float = 0.0
+    irms:float = 0.0
+    ploss:float = 0.0
 
     #Electrical Characteristics
-    R:float = field(default=0)
-    C:float = field(default=0)
+    R:float = 0.0
+    C:float = 0.0
 
     def _calc_std_value(self,value, eseries):
         frac,decade = np.modf(np.log10(value))
         return round(10**(round(frac*eseries)/eseries),2)*10**(decade)
 
 
-@dataclass
 class Resistor(Passive):
-    name:str = field(default='R')
+    name:str = 'R'
 
     @property
     def R_e96(self):
@@ -42,10 +39,8 @@ class Resistor(Passive):
         """Calculate closest 5% comercial value [E24]"""
         return self._calc_std_value(self.R, 24.0)
 
-@dataclass
 class Capacitor(Passive):
-    name:str = field(default='C')
-
+    name:str = 'C'
     @property
     def C_e24(self):
         """Calculate closest 5% comercial value [E24]"""
@@ -62,39 +57,45 @@ class Capacitor(Passive):
         return self._calc_std_value(self.C, 6.0)
         
 
-@dataclass
 class Inductor:
-    name:str = field(default='Generic')
+    name:str = 'L'
     #Operating Point
-    von:float = field(default=0,repr=False)
-    voff:float = field(default=0,repr=False)
-    vsec:float = field(default=0,repr=False)
-    vusec:float = field(default=0,repr=True)
-    Iavg:float = field(default=0,repr=True)
-    Ipk:float = field(default=0,repr=False)
-    Ipkpk:float = field(default=0,repr=True)
-    Ivalley:float = field(default=0,repr=False)
-    Irms:float = field(default=0,repr=True)
-    Ploss:float = field(default_factory=lambda:{'core':0.0,'ohm':0.0})
+    von = 0
+    voff = 0
+    vsec:float = 0.0
+    vusec:float = 0.0
+    iavg = 0.0
+    ipkpk = 0.0
+    ivalley = 0.0
+    irms = 0.0
+    ploss = 0.0
 
     #Electrical Characteristics
-    L:float = field(default=0,repr=True)
-    dcr:float = field(default=0,repr=False)
-    Isat:float = field(default=0,repr=False)
-    Irms_20C:float = field(default=0,repr=False)
-    Irms_40C:float = field(default=0,repr=False)
+    value:float = 0.0
+    dcr = 0.0
+    ilim_sat = 0.0
+    irms_20C = 0.0
+    irms_40C = 0.0
     
     #Mechanical Characteristics
-    xdim:float = field(default=0,repr=False)
-    ydim:float = field(default=0,repr=False)
-    weight:float = field(default=0,repr=False)
+    xdim:float = 0.0
+    ydim:float = 0.0
+    weight:float = 0.0
 
     #Misc
-    cost:float = field(default=0,repr=False)
+    cost:float = 0.0
 
     @property
-    def Irf(self):
+    def irf(self):
         return self.Ipkpk/self.Iavg
+
+    def __repr__(self):
+
+        s  = f"L = {self.value/1e-6:2.2f}uH\n"
+        s += f"iLrms = {self.irms:2.2f}Arms\n"
+        s += f"iLpeak = {self.ipk:2.2f}A\n"
+        s += f"iLvalley = {self.ivalley:2.2f}A\n"
+        return s
 
     # def load(self, df:pd.DataFrame, name:str):
     #     self.name = name
@@ -114,79 +115,85 @@ class Inductor:
 #                    POWER DEVICES 
 # ***********************************************************************************************
 
-@dataclass
 class GateDriver:
 
-    name:str = field(default='Generic')
+    name:str = 'Gate Driver'
     #Operating Point
-    vdrv:float = field(default=0.0)
-    Igdrv:float = field(default=0.0)
-    Ploss:float = field(default=0.0)
+    vdrv:float = 0.0
+    igdrv:float = 0.0
+    ploss:float = 0.0
     #Electrical Characteristics
-    rpull_up:float = field(default=0.0, repr=False)
-    rpull_down:float = field(default=0.0, repr=False)
-    Ipk_source:float = field(default=0.0, repr=False)
-    Ipk_sink:float = field(default=0.0, repr=False)
-    deadtime:float = field(default=0.0, repr=False)
+    rpull_up:float = 0.0
+    rpull_down:float = 0.0
+    ipk_source:float = 0.0
+    ipk_sink:float = 0.0
+    deadtime:float = 0.0
     #Mechanical
-    xdim:float = field(default=0.0, repr=False)
-    ydim:float = field(default=0.0, repr=False)
-    weight:float = field(default=0.0, repr=False)
+    xdim:float = 0.0
+    ydim:float = 0.0
+    weight:float = 0.0
     #Misc
-    cost:float = field(default=0.0, repr=False)
+    cost:float = 0.0
 
-@dataclass
 class Mosfet:
     
-    name:str = field(default='Generic')
+    name:str = 'Ideal FET'
     #Operating Point
-    vds:float = field(default=0.0,repr=False)
-    Idrms:float = field(default=0.0,repr=True)
-    Idpk:float = field(default=0.0,repr=True)
-    Tamb:float = field(default=25.0,repr=False)
-    Tj:float = field(default=25.0,repr=True)
-    Ploss:dict = field(default_factory=lambda: {'ohm':0.0,'sw':0.0,'coss':0.0,'dt':0.0,'qrr':0.0})
-    def qsw(self):
+    vds:float = 0.0
+    idrms:float = 0.0
+    idpk:float = 0.0
+    tamb:float = 0.0
+    tj:float = 0.0
+    ploss:dict = 0.0
+
     @property
-    def Ploss_total(self):
-        return sum(self.Ploss.values())
+    def ploss_total(self):
+        return sum(self.ploss.values())
 
     def connect_gatedrive(self,gatedrive:GateDriver):
         self.gatedrv = gatedrive
 
     def get_switch_times(self):
-        self.Igon  = (self.gatedrv.vdrv - self.vmiller) / (self.rg + self.gatedrv.rpull_up)
-        self.Igoff = abs((0.0 - self.vmiller) / (self.rg + self.gatedrv.rpull_down))
+        self.igon  = (self.gatedrv.vdrv - self.vmiller) / (self.rg + self.gatedrv.rpull_up)
+        self.igoff = abs((0.0 - self.vmiller) / (self.rg + self.gatedrv.rpull_down))
 
-        if self.Igon > self.gatedrv.Ipk_source:
-            self.Igon= self.gatedrv.Ipk_source
-        if self.Igoff > self.gatedrv.Ipk_sink:
-            self.Igoff= self.gatedrv.Ipk_sink
+        if self.igon > self.gatedrv.ipk_source:
+            self.igon= self.gatedrv.ipk_source
+        if self.igoff > self.gatedrv.ipk_sink:
+            self.igoff= self.gatedrv.ipk_sink
                     
-        self.tr = self.qsw/self.Igon
-        self.tf = self.qsw/self.Igoff
+        self.tr = self.qsw/self.igon
+        self.tf = self.qsw/self.igoff
         
     #Electrical Characteristics
-    rdson:float = field(default=0,repr=False)
-    coss:float = field(default=0,repr=False)
-    vfwd:float = field(default=0,repr=False)
-    vmiller:float = field(default=0,repr=False)
-    qgs:float = field(default=0,repr=False)
-    qgd:float = field(default=0,repr=False)
-    qtot:float = field(default=0,repr=False)
-    qrr:float = field(default=0,repr=False)
-    trr:float = field(default=0,repr=False)
-    rg:float = field(default=0,repr=False)
-    vgsth:float = field(default=0,repr=False)
+    rdson:float = 0.0
+    coss:float = 0.0
+    vfwd:float = 0.0
+    vmiller:float = 0.0
+    qgs:float = 0.0
+    qgd:float = 0.0
+    qtot:float = 0.0
+    qrr:float = 0.0
+    trr:float = 0.0
+    rg:float = 0.0
+    vgsth:float = 0.0
     
     #Mechanical Characteristics
-    xdim:float = field(default=0,repr=False)
-    ydim:float = field(default=0,repr=False)
-    weight:float = field(default=0,repr=False)
+    xdim:float = 0.0
+    ydim:float = 0.0
+    weight:float = 0.0
     #Thermal Characteristics
-    rthjc:float = field(default=0,repr=False)
+    rthjc:float = 0.0
     #Misc Characteristics
-    cost:float = field(default=0,repr=False)
+    cost:float = 0.0
+
+    def __repr__(self):
+
+        s  = f"Name = {self.name}\n"
+        s += f"Vds = {self.vds:2.2f}V\n"
+        s += f"idrms = {self.idrms:2.2f}Arms\n"
+        s += f"idpeak = {self.idpk:2.2f}A\n"
+        return s
 
     # def load(self, df:pd.DataFrame, name:str):
     #     self.name = name
