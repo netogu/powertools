@@ -168,7 +168,7 @@ class SyncBuck:
             self.SWhs.ploss['ohm'] = self.SWhs.rdson * self.SWhs.idrms**2
             self.SWhs.ploss['sw'] = (self.Lout.iavg/self.n_swhs)*self.SWhs.vds*(self.SWhs.tr + self.SWhs.tf)*self.op.fsw
             self.SWhs.ploss['dt'] = self.SWhs.vfwd * self.SWhs.idrms * self.Gdhs.deadtime * 2 * self.op.fsw
-            self.SWhs.ploss['coss'] = 1.0 * self.SWhs.coss * self.SWhs.vds * self.op.fsw
+            self.SWhs.ploss['coss'] = 0.5 * self.SWhs.coss * self.SWhs.vds**2 * self.op.fsw
 
             # Sync. Rectifier Loss (per Device)
             self.SWls.ploss['ohm'] = self.SWls.rdson * self.SWls.idrms**2
@@ -181,6 +181,7 @@ class SyncBuck:
         s = "Sync Buck:\n"
         s += str(self.op)
         s += "----------------------------\n"
+        s += "Inductor:\n"
         s += str(self.Lout)
         s += "----------------------------\n"
         s += "HS FET:\n"
@@ -197,5 +198,27 @@ class SyncBuck:
         s += "Input Capacitance:\n"
         s += f"Cin(ss) = {self.Cin.C/1e-6:2.2f}uF\n"
         s += f"Cin:irms = {self.Cin.irms:2.2f}A\n"
+        if self._calc_losses == True:
+            s += "----------------------------\n"
+            s += "Gate Driver Losses:\n"
+            s += f"[HS]: {self.Gdhs.ploss:2.2f}W\n"
+            s += f"[LS]: {self.Gdls.ploss:2.2f}W\n"
+            s += "----------------------------\n"
+            s += "HS FET Losses:\n"
+            s += f"[Ohm]: {self.SWhs.ploss['ohm']:2.2f}W\n"
+            s += f"[Coss]: {self.SWhs.ploss['coss']:2.2f}W\n"
+            s += f"[SW]: {self.SWhs.ploss['sw']:2.2f}W\n"
+            s += f"[DT]: {self.SWhs.ploss['dt']:2.2f}W\n"
+            s += f"[Total]: {self.SWhs.ploss_total:2.2f}W\n"
+            s += "----------------------------\n"
+            s += "LS FET Losses:\n"
+            s += f"[Ohm]: {self.SWls.ploss['ohm']:2.2f}W\n"
+            s += f"[Coss]: {self.SWls.ploss['coss']:2.2f}W\n"
+            s += f"[SW]: {self.SWls.ploss['sw']:2.2f}W\n"
+            s += f"[DT]: {self.SWls.ploss['dt']:2.2f}W\n"
+            s += f"[Total]: {self.SWls.ploss_total:2.2f}W\n"
+            s += "----------------------------\n"
+            s += "Inductor Losses:\n"
+            s += f"[Ohm]: {self.Lout.ploss['ohm']:2.2f}W\n"
         return s
 

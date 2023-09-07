@@ -7,14 +7,14 @@ import numpy as np
 #                    PASSIVE DEVICES
 # ***********************************************************************************************
 class Passive:
-    #Operating Point
-    volt:float = 0.0
-    irms:float = 0.0
-    ploss:float = 0.0
+    def __init__(self) -> None:
+        #Operating Point
+        self.volt:float = 0.0
+        self.irms:float = 0.0
 
-    #Electrical Characteristics
-    R:float = 0.0
-    C:float = 0.0
+        #Electrical Characteristics
+        R:float = 0.0
+        C:float = 0.0
 
     def _calc_std_value(self,value, eseries):
         frac,decade = np.modf(np.log10(value))
@@ -58,43 +58,49 @@ class Capacitor(Passive):
         
 
 class Inductor:
-    name:str = 'L'
-    #Operating Point
-    von = 0
-    voff = 0
-    vsec:float = 0.0
-    vusec:float = 0.0
-    iavg = 0.0
-    ipkpk = 0.0
-    ivalley = 0.0
-    irms = 0.0
-    ploss = 0.0
+    def __init__(self) -> None:
+        self.name:str = 'L'
+        #Operating Point
+        self.von = 0
+        self.voff = 0
+        self.vsec:float = 0.0
+        self.vusec:float = 0.0
+        self.iavg = 0.0
+        self.ipkpk = 0.0
+        self.ivalley = 0.0
+        self.irms = 0.0
+        self.ploss:dict = {'ohm': 0.0, 'core': 0.0}
 
-    #Electrical Characteristics
-    value:float = 0.0
-    dcr = 0.0
-    ilim_sat = 0.0
-    irms_20C = 0.0
-    irms_40C = 0.0
-    
-    #Mechanical Characteristics
-    xdim:float = 0.0
-    ydim:float = 0.0
-    weight:float = 0.0
+        #Electrical Characteristics
+        self.value:float = 0.0
+        self.dcr = 0.0
+        self.ilim_sat = 0.0
+        self.irms_20C = 0.0
+        self.irms_40C = 0.0
+        
+        #Mechanical Characteristics
+        self.xdim:float = 0.0
+        self.ydim:float = 0.0
+        self.weight:float = 0.0
 
-    #Misc
-    cost:float = 0.0
+        #Misc
+        self.cost:float = 0.0
 
     @property
     def irf(self):
-        return self.Ipkpk/self.Iavg
+        return self.ipkpk/self.iavg
 
     def __repr__(self):
 
-        s  = f"L = {self.value/1e-6:2.2f}uH\n"
+        s  = f"Name = {self.name}\n"
+        s += f"L = {self.value/1e-6:2.2f}uH\n"
+        s += f"iLavg = {self.iavg:2.2f}A\n"
         s += f"iLrms = {self.irms:2.2f}Arms\n"
         s += f"iLpeak = {self.ipk:2.2f}A\n"
         s += f"iLvalley = {self.ivalley:2.2f}A\n"
+        s += f"iLpp = {self.ipkpk:2.2f}A\n"
+        s += f"irf = {self.irf*100:2.2f}%\n"
+
         return s
 
     # def load(self, df:pd.DataFrame, name:str):
@@ -116,35 +122,58 @@ class Inductor:
 # ***********************************************************************************************
 
 class GateDriver:
-
-    name:str = 'Gate Driver'
-    #Operating Point
-    vdrv:float = 0.0
-    igdrv:float = 0.0
-    ploss:float = 0.0
-    #Electrical Characteristics
-    rpull_up:float = 0.0
-    rpull_down:float = 0.0
-    ipk_source:float = 0.0
-    ipk_sink:float = 0.0
-    deadtime:float = 0.0
-    #Mechanical
-    xdim:float = 0.0
-    ydim:float = 0.0
-    weight:float = 0.0
-    #Misc
-    cost:float = 0.0
+    def __init__(self) -> None:
+        self.name:str = 'Gate Driver'
+        #Operating Point
+        self.vdrv:float = 0.0
+        self.igdrv:float = 0.0
+        self.ploss:float = 0.0
+        #Electrical Characteristics
+        self.rpull_up:float = 0.0
+        self.rpull_down:float = 0.0
+        self.ipk_source:float = 0.0
+        self.ipk_sink:float = 0.0
+        self.deadtime:float = 0.0
+        #Mechanical
+        self.xdim:float = 0.0
+        self.ydim:float = 0.0
+        self.weight:float = 0.0
+        #Misc
+        self.cost:float = 0.0
 
 class Mosfet:
-    
-    name:str = 'Ideal FET'
-    #Operating Point
-    vds:float = 0.0
-    idrms:float = 0.0
-    idpk:float = 0.0
-    tamb:float = 0.0
-    tj:float = 0.0
-    ploss:dict = 0.0
+    def __init__(self) -> None: 
+        self.name:str = 'Ideal FET'
+        #Operating Point
+        self.vds:float = 0.0
+        self.idrms:float = 0.0
+        self.idpk:float = 0.0
+        self.tamb:float = 0.0
+        self.tj:float = 0.0
+        self.ploss:dict = {'ohm':0.0, 'sw':0.0, 'dt':0.0, 'coss':0.0}
+
+        #Electrical Characteristics
+        self.rdson:float = 0.0
+        self.coss:float = 0.0
+        self.vfwd:float = 0.0
+        self.vmiller:float = 0.0
+        self.qgs:float = 0.0
+        self.qgd:float = 0.0
+        self.qsw:float = 0.0
+        self.qtot:float = 0.0
+        self.qrr:float = 0.0
+        self.trr:float = 0.0
+        self.rg:float = 0.0
+        self.vgsth:float = 0.0
+        
+        #Mechanical Characteristics
+        self.xdim:float = 0.0
+        self.ydim:float = 0.0
+        self.weight:float = 0.0
+        #Thermal Characteristics
+        self.rthjc:float = 0.0
+        #Misc Characteristics
+        self.cost:float = 0.0
 
     @property
     def ploss_total(self):
@@ -157,35 +186,16 @@ class Mosfet:
         self.igon  = (self.gatedrv.vdrv - self.vmiller) / (self.rg + self.gatedrv.rpull_up)
         self.igoff = abs((0.0 - self.vmiller) / (self.rg + self.gatedrv.rpull_down))
 
+        
         if self.igon > self.gatedrv.ipk_source:
-            self.igon= self.gatedrv.ipk_source
+            self.igon = self.gatedrv.ipk_source
         if self.igoff > self.gatedrv.ipk_sink:
-            self.igoff= self.gatedrv.ipk_sink
+            self.igoff = self.gatedrv.ipk_sink
                     
+
         self.tr = self.qsw/self.igon
         self.tf = self.qsw/self.igoff
         
-    #Electrical Characteristics
-    rdson:float = 0.0
-    coss:float = 0.0
-    vfwd:float = 0.0
-    vmiller:float = 0.0
-    qgs:float = 0.0
-    qgd:float = 0.0
-    qtot:float = 0.0
-    qrr:float = 0.0
-    trr:float = 0.0
-    rg:float = 0.0
-    vgsth:float = 0.0
-    
-    #Mechanical Characteristics
-    xdim:float = 0.0
-    ydim:float = 0.0
-    weight:float = 0.0
-    #Thermal Characteristics
-    rthjc:float = 0.0
-    #Misc Characteristics
-    cost:float = 0.0
 
     def __repr__(self):
 
