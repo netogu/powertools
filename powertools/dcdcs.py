@@ -55,30 +55,31 @@ class SyncBuck:
                         inductor:Inductor=Inductor(),
                         outcap:Capacitor=Capacitor(),
                         incap:Capacitor=Capacitor(),
-                        active_sw:Mosfet=Mosfet(),
-                        passive_sw:Mosfet=Mosfet(),
-                        hs_gatedrive:GateDriver=GateDriver(),
-                        ls_gatedrive:GateDriver=GateDriver(),
-                        n_active_sw:int = 1,
-                        n_passive_sw:int = 1,
-                        Nphases:int = 1):
+                        fet_hs:Mosfet=Mosfet(),
+                        fet_ls:Mosfet=Mosfet(),
+                        gd_hs:GateDriver=GateDriver(),
+                        gd_ls:GateDriver=GateDriver(),
+                        n_fet_hs:int = 1,
+                        n_fet_ls:int = 1,
+                        n_phases:int = 1):
 
 
         self.op = op
         self.Lout = inductor
         self.Cin = incap
         self.Cout = outcap
-        self.SWhs = active_sw
-        self.SWls = passive_sw
-        self.Gdls = hs_gatedrive
-        self.Gdhs = ls_gatedrive
-        self.n_swhs = n_active_sw
-        self.n_swls = n_passive_sw
-        self.n_phases = Nphases
+        self.FetH = fet_hs
+        self.FetL = fet_ls
+        self.GdH = gd_hs
+        self.GdL = gd_ls
+        self.n_fet_hs = n_active_sw
+        self.n_fet_ls = n_passive_sw
+        self.n_phases = n_phases
+        
 
         #Connect Gate drivers
-        self.SWhs.connect_gatedrive(self.Gdhs)
-        self.SWls.connect_gatedrive(self.Gdls)
+        self.FetH.connect_gatedrive(self.GdH)
+        self.FetL.connect_gatedrive(self.GdL)
 
         self._calc_losses = False
 
@@ -136,18 +137,18 @@ class SyncBuck:
         # ------- Calculate FET Currents ------------ 
 
         # Active FET
-        self.SWhs.vds = self.op.vin
-        self.SWhs.idpk = self.Lout.ipk/self.n_swhs
-        self.SWhs.idrms = self.Lout.iavg*np.sqrt(self.dc)/self.n_swhs
-        self.SWhs.idpk_total = self.SWhs.idpk * self.n_swhs
-        self.SWhs.idrms_total = self.SWhs.idrms * self.n_swhs
+        self.FetH.vds = self.op.vin
+        self.FetH.idpk = self.Lout.ipk/self.n_fet_hs
+        self.FetH.idrms = self.Lout.iavg*np.sqrt(self.dc)/self.n_fet_hs
+        self.FetH.idpk_total = self.FetH.idpk * self.n_fet_hs
+        self.FetH.idrms_total = self.FetH.idrms * self.n_fet_hs
         
         # Sync|Passive FET
-        self.SWls.vds = self.op.vin
-        self.SWls.idpk = self.Lout.ipk/self.n_swls
-        self.SWls.idrms = self.Lout.iavg*np.sqrt(1-self.dc)/self.n_swls
-        self.SWls.idpk_total = self.SWls.idpk * self.n_swls
-        self.SWls.idrms_total = self.SWls.idrms * self.n_swls
+        self.FetL.vds = self.op.vin
+        self.FetL.idpk = self.Lout.ipk/self.n_fet_ls
+        self.FetL.idrms = self.Lout.iavg*np.sqrt(1-self.dc)/self.n_fet_ls
+        self.FetL.idpk_total = self.FetL.idpk * self.n_fet_ls
+        self.FetL.idrms_total = self.FetL.idrms * self.n_fet_ls
 
         # ------- Calculate Input Capacitance ------------ 
 
@@ -160,19 +161,19 @@ class SyncBuck:
 
             # --------- Loss Calculation ------------ 
             # Gate Driver Loss
-            self.Gdhs.ploss = self.SWhs.qtot * self.n_swhs * self.Gdhs.vdrv * self.op.fsw
-            self.Gdls.ploss = self.SWls.qtot * self.n_swls * self.Gdls.vdrv * self.op.fsw
+            self.GdH.ploss = self.FetH.qtot * self.n_fet_hs * self.GdH.vdrv * self.op.fsw
+            self.GdL.ploss = self.FetL.qtot * self.n_fet_ls * self.GdL.vdrv * self.op.fsw
 
             # Active Switch Loss (per Device)
-            self.SWhs.get_switch_times()
-            self.SWhs.ploss['ohm'] = self.SWhs.rdson * self.SWhs.idrms**2
-            self.SWhs.ploss['sw'] = (self.Lout.iavg/self.n_swhs)*self.SWhs.vds*(self.SWhs.tr + self.SWhs.tf)*self.op.fsw
-            self.SWhs.ploss['dt'] = self.SWhs.vfwd * self.SWhs.idrms * self.Gdhs.deadtime * 2 * self.op.fsw
-            self.SWhs.ploss['coss'] = 0.5 * self.SWhs.coss * self.SWhs.vds**2 * self.op.fsw
+            self.FetH.get_switch_times()
+            self.FetH.ploss['ohm'] = self.FetH.rdson * self.FetH.idrms**2
+            self.FetH.ploss['sw'] = (self.Lout.iavg/self.n_fet_hs)*self.FetH.vds*(self.FetH.tr + self.FetH.tf)*self.op.fsw
+            self.FetH.ploss['dt'] = self.FetH.vfwd * self.FetH.idrms * self.GdH.deadtime * 2 * self.op.fsw
+            self.FetH.ploss['coss'] = 0.5 * self.FetH.coss * self.FetH.vds**2 * self.op.fsw
 
             # Sync. Rectifier Loss (per Device)
-            self.SWls.ploss['ohm'] = self.SWls.rdson * self.SWls.idrms**2
-            self.SWls.ploss['dt'] = self.SWls.vfwd * self.SWls.idrms * self.Gdls.deadtime * 2 * self.op.fsw
+            self.FetL.ploss['ohm'] = self.FetL.rdson * self.FetL.idrms**2
+            self.FetL.ploss['dt'] = self.FetL.vfwd * self.FetL.idrms * self.GdL.deadtime * 2 * self.op.fsw
 
             # Inductor Loss
             self.Lout.ploss['ohm'] = self.Lout.dcr * self.Lout.irms**2
@@ -185,10 +186,10 @@ class SyncBuck:
         s += str(self.Lout)
         s += "----------------------------\n"
         s += "HS FET:\n"
-        s += str(self.SWhs)
+        s += str(self.FetH)
         s += "----------------------------\n"
         s += "LS FET:\n"
-        s += str(self.SWls)
+        s += str(self.FetL)
         s += "----------------------------\n"
         s += "Output Capacitance:\n"
         s += f"Cout(ss) = {self.Cout.Css/1e-6:2.2f}uF\n"
@@ -201,22 +202,22 @@ class SyncBuck:
         if self._calc_losses == True:
             s += "----------------------------\n"
             s += "Gate Driver Losses:\n"
-            s += f"[HS]: {self.Gdhs.ploss:2.2f}W\n"
-            s += f"[LS]: {self.Gdls.ploss:2.2f}W\n"
+            s += f"[HS]: {self.GdH.ploss:2.2f}W\n"
+            s += f"[LS]: {self.GdL.ploss:2.2f}W\n"
             s += "----------------------------\n"
             s += "HS FET Losses:\n"
-            s += f"[Ohm]: {self.SWhs.ploss['ohm']:2.2f}W\n"
-            s += f"[Coss]: {self.SWhs.ploss['coss']:2.2f}W\n"
-            s += f"[SW]: {self.SWhs.ploss['sw']:2.2f}W\n"
-            s += f"[DT]: {self.SWhs.ploss['dt']:2.2f}W\n"
-            s += f"[Total]: {self.SWhs.ploss_total:2.2f}W\n"
+            s += f"[Ohm]: {self.FetH.ploss['ohm']:2.2f}W\n"
+            s += f"[Coss]: {self.FetH.ploss['coss']:2.2f}W\n"
+            s += f"[SW]: {self.FetH.ploss['sw']:2.2f}W\n"
+            s += f"[DT]: {self.FetH.ploss['dt']:2.2f}W\n"
+            s += f"[Total]: {self.FetH.ploss_total:2.2f}W\n"
             s += "----------------------------\n"
             s += "LS FET Losses:\n"
-            s += f"[Ohm]: {self.SWls.ploss['ohm']:2.2f}W\n"
-            s += f"[Coss]: {self.SWls.ploss['coss']:2.2f}W\n"
-            s += f"[SW]: {self.SWls.ploss['sw']:2.2f}W\n"
-            s += f"[DT]: {self.SWls.ploss['dt']:2.2f}W\n"
-            s += f"[Total]: {self.SWls.ploss_total:2.2f}W\n"
+            s += f"[Ohm]: {self.FetL.ploss['ohm']:2.2f}W\n"
+            s += f"[Coss]: {self.FetL.ploss['coss']:2.2f}W\n"
+            s += f"[SW]: {self.FetL.ploss['sw']:2.2f}W\n"
+            s += f"[DT]: {self.FetL.ploss['dt']:2.2f}W\n"
+            s += f"[Total]: {self.FetL.ploss_total:2.2f}W\n"
             s += "----------------------------\n"
             s += "Inductor Losses:\n"
             s += f"[Ohm]: {self.Lout.ploss['ohm']:2.2f}W\n"
