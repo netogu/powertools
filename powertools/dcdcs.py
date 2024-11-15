@@ -38,6 +38,9 @@ class PowerParams:
         s += f"Vout = {self.vout:2.2f}V\n"
         s += f"Pout = {self.pout:2.2f}W\n"
         s += f"Iout = {self.iout:2.2f}A\n"
+        s += f"Vout_ss_ripple = {self.vout_ss_ripple:2.2f}V\n"
+        s += f"Vout_ac_ripple = {self.vout_ac_ripple:2.2f}V\n"
+        s += f"Vin_ripple = {self.vin_ripple:2.2f}V\n"
         s += f"Fsw = {self.fsw/1e3:2.2f}kHz\n"
 
         return s

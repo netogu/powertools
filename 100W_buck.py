@@ -4,20 +4,27 @@ from powertools.dcdcs import PowerParams, SyncBuck
 
 op = PowerParams()
 op.vin = 48.0
-op.vout = 12.0
+op.vout = 20.0
 op.pout = 100.0
 op.fsw = 400e3
 op.il_rfactor = 0.4
-op.vin_ripple = op.vin * 0.01
-op.vout_ss_ripple = 0.1
+op.vin_ripple = 250e-3 #Volts
+op.vout_ss_ripple = op.vout * 0.01
 op.vout_ac_ripple = op.vout * 0.03
 op.fc = op.fsw / 15.0
 op.eff = 1.0
 
+# for 12V output
 L = comp.Inductor()
 L.name = '784325065'
 L.value = 6.0e-6
 L.dcr = 12.0e-3
+
+# for 24V output
+L = comp.Inductor()
+L.name = '784325100'
+L.value = 15.0e-6
+L.dcr = 21.0e-3
 
 GD1 = comp.GateDriver()
 GD1.name = 'LM5148-HO'
@@ -67,6 +74,51 @@ FET2.vfwd = 1.2
 FET2.qrr = 25e-9
 FET2.trr = 29e-9
 
+FET3 = comp.Mosfet()
+FET3.name = 'PSMN014-80YL'
+FET3.rdson = 15e-3*1.5
+FET3.coss = 283e-12
+FET3.vgsth = 2.1
+FET3.vmiller = 2.8
+FET3.qgs = 8.1e-9
+FET3.qgd = 8.7e-9
+FET3.qsw = 8.1e-9/2 + 8.7e-9
+FET3.qtot = 29e-9
+FET3.rg = 1.2
+FET3.vfwd = 1.2
+FET3.qrr = 25e-9
+FET3.trr = 29e-9
+
+FET4 = comp.Mosfet()
+FET4.name = 'IQE046N08LM5CGSC'
+FET4.rdson = 5.9e-3*1.5
+FET4.coss = 507e-12
+FET4.vmiller = 2.8
+FET4.qgs = 7e-9
+FET4.qgd = 9.6e-9
+FET4.qsw = 9.1e-9
+FET4.qtot = 24e-9
+FET4.rg = 0.9
+FET4.vgsth = 2.3
+FET4.vfwd = 1.0
+FET4.qrr = 52e-9
+FET4.trr = 36e-9
+
+FET5 = comp.Mosfet()
+FET5.name = 'ISZ0602NLS'
+FET5.rdson = 9.9e-3*1.5
+FET5.coss = 290e-12
+FET5.vmiller = 3.0
+FET5.qgs = 4.3e-9
+FET5.qgd = 3.9e-9
+FET5.qsw = 5.8e-9
+FET5.qtot = 15e-9
+FET5.rg = 0.9
+FET5.vgsth = 2.3
+FET5.vfwd = 1.0
+FET5.qrr = 23e-9
+FET5.trr = 30e-9
+
 # FET2 = comp.Mosfet()
 # FET2.name = 'ISC0602NLS'
 # FET2.rdson = 9.5e-3*1.5
@@ -82,7 +134,7 @@ FET2.trr = 29e-9
 # FET2.qrr = 20e-9
 # FET2.trr = 28e-9
 
-buck1 = SyncBuck(op=op, active_sw=FET1, passive_sw=FET2, hs_gatedrive=GD1, ls_gatedrive=GD2, inductor=L)
+buck1 = SyncBuck(op=op, active_sw=FET5, passive_sw=FET4, hs_gatedrive=GD1, ls_gatedrive=GD2, inductor=L)
 buck1.update(calc_losses=True)
 print(buck1)
 
